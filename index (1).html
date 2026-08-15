@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FitLook — 3D風バーチャル試着</title>
+<style>
+:root{--bg:#07101c;--panel:#0d1928;--panel2:#101f31;--line:#24364c;--text:#eef5ff;--muted:#91a1b6;--blue:#4da3ff;--green:#35d6a0}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#07101c,#0b1522);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}
+header{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 24px;gap:30px;background:#08121f}
+.logo{font-size:27px;font-weight:800}.logo span{color:var(--blue)}
+nav{display:flex;gap:25px;color:#aab8c9;font-size:13px}nav b{color:#fff}
+.top{margin-left:auto;display:flex;gap:9px}.top button,.pill{background:#0d1b2b;border:1px solid #29415b;color:#dbe8f6;border-radius:9px;padding:8px 14px}
+.app{display:grid;grid-template-columns:300px minmax(420px,1fr) 360px;min-height:calc(100vh - 66px)}
+aside,.right{background:#0a1523;padding:18px;border-right:1px solid var(--line);overflow:auto}.right{border-right:0;border-left:1px solid var(--line)}
+h2{font-size:14px;margin:0 0 15px}.section{border-bottom:1px solid var(--line);padding-bottom:17px;margin-bottom:17px}
+.section h3{font-size:12px;color:#8fa2b8;margin:0 0 11px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{font-size:11px;color:#9dafc2;display:block;margin:8px 0 4px}input[type=number],select{width:100%;background:#0e2033;color:#fff;border:1px solid #2b4056;border-radius:7px;padding:8px}input[type=range]{width:100%;accent-color:var(--blue)}
+.measure{display:grid;grid-template-columns:1fr 55px;align-items:center;margin:9px 0}.measure input[type=number]{padding:5px}.measure span{font-size:11px;color:#a9b8c9}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.preset{padding:9px 3px;border:1px solid var(--line);border-radius:8px;background:#0d1b2b;color:#9fb0c4;font-size:10px}.preset.active{border-color:var(--blue);color:#fff;background:#102d4b}
+.center{position:relative;padding:15px;background:#111b28;min-width:0}.toolbar{height:44px;display:flex;align-items:center;gap:7px}.toolbar button{border:1px solid var(--line);background:#0c1927;color:#cbd7e5;border-radius:8px;padding:7px 11px}.toolbar .on{background:#1762a0;border-color:#4da3ff;color:white}
+.canvas{height:calc(100vh - 145px);min-height:650px;border:1px solid #26384c;border-radius:14px;background:radial-gradient(circle at 50% 25%,#59606a 0,#2c333c 32%,#151c25 75%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.floor{position:absolute;bottom:-170px;width:700px;height:320px;border-radius:50%;background:radial-gradient(ellipse,#55606c,#202a35 60%,transparent 70%);transform:perspective(400px) rotateX(65deg)}
+.person{position:relative;width:330px;height:610px;transform:scaleX(1);transition:.25s}
+.skin{fill:#d6a27e}.hair{fill:#17191d}.skinstroke{stroke:#9b7056;stroke-width:1}.clothTop{fill:#f4f4f4}.clothBottom{fill:#202833}
+.svgwrap{width:100%;height:100%;filter:drop-shadow(0 18px 18px #0008)}
+.badge{position:absolute;left:15px;top:15px;background:#07101ccc;border:1px solid #31465e;border-radius:9px;padding:8px 11px;font-size:11px}
+.view{position:absolute;right:15px;top:15px}.view button{background:#07101ccc;color:#fff;border:1px solid #41546a;padding:7px 10px}.view button:first-child{border-radius:7px 0 0 7px}.view button:last-child{border-radius:0 7px 7px 0}
+.bottomtools{position:absolute;bottom:15px;background:#07101cdd;border:1px solid #31465e;border-radius:11px;padding:9px 14px;display:flex;gap:18px;align-items:center;font-size:11px}.bottomtools input{width:150px}
+.item{background:#0e1c2c;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}.itemhead{display:flex;gap:9px}.thumb{width:54px;height:54px;border-radius:7px;background:#eee;display:flex;align-items:center;justify-content:center;color:#222;font-size:10px}.item b{font-size:12px}.item small{color:#8496aa}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}.metric{font-size:10px;color:#8fa0b4}.metric strong{display:block;color:#fff;font-size:12px}
+.scorebox{background:linear-gradient(135deg,#0d2a3b,#10263a);border:1px solid #1f5663;border-radius:12px;padding:14px;margin-bottom:12px}.score{font-size:32px;font-weight:800}.score small{font-size:12px;color:#9eb0c4}.bar{height:6px;background:#203247;border-radius:5px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,#3bcba0,#5baeff)}
+.analysis{display:grid;grid-template-columns:1fr 65px;align-items:center;gap:7px;font-size:11px;margin:9px 0}.analysis .bar{margin:0}.analysis b{font-size:10px;color:#a9b9ca}
+.swatches{display:flex;gap:7px;flex-wrap:wrap}.sw{width:29px;height:29px;border-radius:7px;border:2px solid #34475b}.sw.sel{border-color:#fff;box-shadow:0 0 0 1px var(--blue)}
+.outfits{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.out{height:76px;border:1px solid var(--line);border-radius:8px;background:#0d1b2b;text-align:center;font-size:9px;color:#aebdcd;padding:4px}.mini{height:51px;margin:auto;width:31px;position:relative}.mini:before{content:"";position:absolute;left:8px;top:3px;width:15px;height:14px;border-radius:50%;background:#d6a27e}.mini:after{content:"";position:absolute;left:3px;top:15px;width:25px;height:32px;border-radius:7px;background:var(--c,#fff);box-shadow:8px 30px 0 -5px #252b33}
+@media(max-width:1100px){.app{grid-template-columns:260px 1fr}.right{display:none}}@media(max-width:720px){.app{grid-template-columns:1fr}aside{display:none}.canvas{min-height:620px}}
+</style>
+</head>
+<body>
+<header><div class="logo">Fit<span>Look</span></div><nav><b>マイモデル</b><span>試着</span><span>コーデ提案</span><span>アイテム検索</span><span>保存</span></nav><div class="top"><button>ログイン</button><button>アカウント</button></div></header>
+
+<div class="app">
+<aside>
+<div class="section"><h2>体型設定</h2>
+<h3>基本情報</h3><div class="grid2"><div><label>身長</label><input id="height" type="number" value="170"></div><div><label>体重</label><input id="weight" type="number" value="60"></div></div>
+<label>体型のボリューム</label><input id="volume" type="range" min="0" max="100" value="42">
+<h3>詳細寸法 (cm)</h3>
+<div id="measurements"></div></div>
+<div class="section"><h3>体型プリセット</h3><div class="presets">
+<button class="preset" data-v="25">やせ型</button><button class="preset active" data-v="42">標準</button><button class="preset" data-v="58">がっちり</button><button class="preset" data-v="75">ふくよか</button></div></div>
+<div class="section"><h3>骨格タイプ</h3><div class="presets"><button class="preset">ストレート</button><button class="preset">ウェーブ</button><button class="preset active">ナチュラル</button></div></div>
+<div class="section"><h3>表示</h3><label><input type="checkbox" checked> 寸法ラインを表示</label><label><input type="checkbox" checked> 体型の輪郭を表示</label></div>
+</aside>
+
+<main class="center">
+<div class="toolbar"><button class="on">3D</button><button>2D</button><button>正面</button><button>側面</button><button>背面</button><span style="margin-left:auto;color:#8ea0b3;font-size:11px">ドラッグで回転 / ホイールでズーム</span></div>
+<div class="canvas" id="canvas">
+<div class="badge">MY MODEL · 170 cm</div><div class="view"><button>↶</button><button>↷</button></div><div class="floor"></div>
+<div class="person" id="person">
+<svg class="svgwrap" viewBox="0 0 330 610">
+<defs><linearGradient id="cloth" x1="0" x2="1"><stop stop-color="#fff"/><stop offset=".5" stop-color="#e9e9e9"/><stop offset="1" stop-color="#d7d7d7"/></linearGradient></defs>
+<ellipse cx="165" cy="57" rx="39" ry="45" class="skin"/><path d="M126 54 Q131 8 170 11 Q210 8 205 55 Q188 29 169 31 Q146 27 126 54" class="hair"/>
+<path d="M150 94 L180 94 L186 121 L144 121 Z" class="skin"/>
+<path id="top" d="M110 116 Q165 101 220 116 L244 260 Q225 279 203 268 L195 196 L194 286 Q165 299 136 286 L135 196 L127 268 Q105 279 86 260 Z" fill="url(#cloth)"/>
+<path d="M110 122 L86 142 L75 253 Q83 264 99 261 L116 185Z" class="skin"/>
+<path d="M220 122 L244 142 L255 253 Q247 264 231 261 L214 185Z" class="skin"/>
+<path id="bottom" d="M136 282 Q165 294 194 282 L205 407 L187 555 Q174 564 164 553 L157 412 L145 553 Q132 564 119 555 L125 407Z" fill="#202833"/>
+<path d="M119 555 Q132 566 145 553 L141 573 Q125 584 111 573Z" class="skin"/>
+<path d="M187 555 Q174 566 187 553 L193 573 Q207 584 221 573Z" class="skin"/>
+<path d="M145 130 Q165 144 185 130" fill="none" stroke="#c6c6c6" stroke-width="2"/>
+<path d="M111 168 Q165 180 219 168" fill="none" stroke="#d0d0d0" stroke-width="1" opacity=".7"/>
+</svg></div>
+<div class="bottomtools"><span>↔</span><input id="zoom" type="range" min="80" max="125" value="100"><span>ズーム</span><button onclick="resetView()">リセット</button></div>
+</div></main>
+
+<section class="right">
+<h2>着る服を選択</h2>
+<div class="section"><div class="grid2"><select id="category"><option>トップス</option><option>ボトムス</option><option>アウター</option></select><select id="size"><option>S</option><option selected>M</option><option>L</option><option>XL</option></select></div></div>
+<div class="section">
+<div class="item"><div class="itemhead"><div class="thumb" id="topThumb">Tシャツ</div><div><b>オーバーサイズTシャツ</b><br><small>ブランド: UNILO · サイズ <span id="topSizeText">L</span></small><br><small>カラー: ホワイト</small></div></div>
+<div class="metrics"><div class="metric">着丈<strong id="topLen">74</strong></div><div class="metric">肩幅<strong id="topShoulder">55</strong></div><div class="metric">身幅<strong>58</strong></div><div class="metric">袖丈<strong>25</strong></div></div></div>
+<div class="item"><div class="itemhead"><div class="thumb" style="background:#252b33;color:white">パンツ</div><div><b>ワイドデニムパンツ</b><br><small>ブランド: UNILO · サイズ M</small><br><small>カラー: ブラック</small></div></div>
+<div class="metrics"><div class="metric">ウエスト<strong>78</strong></div><div class="metric">股上<strong>31</strong></div><div class="metric">股下<strong>74</strong></div><div class="metric">わたり<strong>24</strong></div></div></div></div>
+
+<div class="section"><h2>フィット分析</h2><div class="scorebox"><div><span class="score" id="score">84</span><small>/100</small></div><b id="scoreText">よく似合います！</b><div class="bar"><i id="scoreBar" style="width:84%"></i></div><small style="color:#91a1b6">全体的にバランスの良いコーディネートです。</small></div>
+<div class="analysis"><span>肩幅</span><div class="bar"><i style="width:82%"></i></div><b>ちょうど良い</b></div>
+<div class="analysis"><span>身幅</span><div class="bar"><i style="width:76%"></i></div><b>ややゆったり</b></div>
+<div class="analysis"><span>着丈</span><div class="bar"><i style="width:88%"></i></div><b>ちょうど良い</b></div>
+<div class="analysis"><span>袖丈</span><div class="bar"><i style="width:72%"></i></div><b>やや長い</b></div>
+<div class="analysis"><span>ウエスト</span><div class="bar"><i style="width:91%"></i></div><b>ちょうど良い</b></div>
+<div class="analysis"><span>総丈</span><div class="bar"><i style="width:68%"></i></div><b>やや短い</b></div></div>
+
+<div class="section"><h2>カラー分析</h2><div style="display:flex;gap:9px;align-items:center"><div class="sw sel" style="background:#fff"></div><div class="sw" style="background:#202833"></div><b>ホワイト × ブラック</b></div><p style="font-size:11px;color:#93a5b8">相性：<strong style="color:#35d6a0">とても良い</strong><br>コントラストが明確で、上下の境界がきれいに見える組み合わせです。</p><div class="swatches" id="swatches"></div></div>
+<div class="section"><h2>コーデ提案</h2><div class="outfits"><div class="out"><div class="mini" style="--c:#fff"></div>カジュアル</div><div class="out"><div class="mini" style="--c:#6d8db0"></div>ストリート</div><div class="out"><div class="mini" style="--c:#cbbda8"></div>きれいめ</div><div class="out"><div class="mini" style="--c:#222"></div>モード</div></div></div>
+<button class="pill" style="width:100%">♡ このコーデを保存</button>
+</section>
+</div>
+
+<script>
+const names=["首周り","肩幅","胸囲","ウエスト","ヒップ","腕の長さ","腕の太さ","太もも周り","ふくらはぎ","股下"];
+const defaults=[36,44,88,74,90,53,27,52,34,75];
+const box=document.getElementById("measurements");
+names.forEach((n,i)=>{box.insertAdjacentHTML("beforeend",`<div class="measure"><span>${n}</span><input class="m" data-i="${i}" type="number" value="${defaults[i]}"></div>`)});
+
+const person=document.getElementById("person");
+const volume=document.getElementById("volume");
+const zoom=document.getElementById("zoom");
+const heightInput=document.getElementById("height");
+const weightInput=document.getElementById("weight");
+const svg=person.querySelector("svg");
+let currentZoom=1;
+
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+function updateBody(){
+  const vals=[...document.querySelectorAll(".m")].map(x=>+x.value||0);
+  const [neck,shoulder,chest,waist,hip,armLen,armSize,thigh,calf,inseam]=vals;
+  const height=+heightInput.value||170;
+  const weight=+weightInput.value||60;
+  const v=+volume.value;
+
+  const heightScale=clamp(height/170,0.82,1.22);
+  const weightScale=clamp(0.88+(weight-60)/250,0.78,1.22);
+  const volumeScale=0.90+v/100*0.24;
+
+  const shoulderF=clamp(shoulder/44,0.78,1.28);
+  const chestF=clamp(chest/88,0.78,1.30);
+  const waistF=clamp(waist/74,0.72,1.38);
+  const hipF=clamp(hip/90,0.78,1.32);
+  const armF=clamp(armSize/27,0.75,1.35);
+  const thighF=clamp(thigh/52,0.75,1.35);
+  const calfF=clamp(calf/34,0.75,1.35);
+  const armLenF=clamp(armLen/53,0.80,1.25);
+  const inseamF=clamp(inseam/75,0.82,1.22);
+  const neckF=clamp(neck/36,0.82,1.20);
+
+  person.style.transform=`scale(${currentZoom}) scaleY(${heightScale})`;
+
+  const head=svg.querySelector("ellipse");
+  head.setAttribute("rx",39*(0.96+(neckF-1)*0.15));
+
+  const paths=svg.querySelectorAll("path");
+  const neckPath=paths[1];
+  neckPath.setAttribute("transform",`translate(${165*(1-neckF)},0) scale(${neckF},1)`);
+
+  const leftArm=paths[3], rightArm=paths[4];
+  leftArm.setAttribute("transform",`translate(${165*(1-armF)},${120*(1-armLenF)}) scale(${armF},${armLenF})`);
+  rightArm.setAttribute("transform",`translate(${165*(1-armF)},${120*(1-armLenF)}) scale(${armF},${armLenF})`);
+
+  const top=document.getElementById("top");
+  const topX=clamp((shoulderF*0.48+chestF*0.34+weightScale*0.18)*volumeScale,0.78,1.36);
+  const topY=clamp(0.98+(chestF-1)*0.08+(waistF-1)*0.06,0.90,1.12);
+  top.setAttribute("transform",`translate(${165*(1-topX)},${150*(1-topY)}) scale(${topX},${topY})`);
+
+  const bottom=document.getElementById("bottom");
+  const pantsX=clamp((hipF*0.45+thighF*0.35+weightScale*0.20)*volumeScale,0.78,1.38);
+  const pantsY=clamp(inseamF,0.84,1.20);
+  bottom.setAttribute("transform",`translate(${165*(1-pantsX)},${282*(1-pantsY)}) scale(${pantsX},${pantsY})`);
+
+  const topSize=document.getElementById("size").value;
+  const sizeAdj={S:-5,M:0,L:5,XL:10}[topSize]||0;
+  const garmentShoulder=50+sizeAdj;
+  const garmentChest=104+sizeAdj*2;
+  const garmentWaist=80+sizeAdj*2;
+
+  let s=92;
+  s-=Math.abs((garmentShoulder-shoulder)-6)*1.4;
+  s-=Math.abs((garmentChest-chest)-14)*0.5;
+  s-=Math.abs((garmentWaist-waist)-10)*0.35;
+  s=clamp(Math.round(s),45,98);
+
+  document.getElementById("score").textContent=s;
+  document.getElementById("scoreBar").style.width=s+"%";
+  document.getElementById("scoreText").textContent=s>=85?"かなり合わせやすそう！":s>=70?"合わせやすいサイズです":"別サイズも比較してみよう";
+
+  document.getElementById("topSizeText").textContent=topSize;
+  document.getElementById("topShoulder").textContent=garmentShoulder;
+  document.getElementById("topLen").textContent=69+({S:-2,M:0,L:3,XL:6}[topSize]||0);
+  document.querySelector(".badge").textContent=`MY MODEL · ${height} cm`;
+}
+
+document.querySelectorAll("input").forEach(x=>x.addEventListener("input",updateBody));
+document.getElementById("size").addEventListener("change",updateBody);
+
+document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.v){
+    volume.value=b.dataset.v;
+    document.querySelectorAll(".preset[data-v]").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    updateBody();
+  }
+}));
+
+zoom.addEventListener("input",e=>{
+  currentZoom=(+e.target.value)/100;
+  updateBody();
+});
+
+function resetView(){
+  currentZoom=1;
+  zoom.value=100;
+  heightInput.value=170;
+  weightInput.value=60;
+  volume.value=42;
+  [...document.querySelectorAll(".m")].forEach((x,i)=>x.value=defaults[i]);
+  updateBody();
+}
+
+updateBody();
+</script>
+</body></html>
