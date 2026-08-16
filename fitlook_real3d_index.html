@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FitLook β — Real 3D Body</title>
+
+<style>
+:root{
+  --bg:#07101c;--panel:#0a1523;--panel2:#0e1c2c;--line:#26394f;
+  --text:#eef5ff;--muted:#93a5b9;--blue:#4da3ff;--green:#35d6a0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#07101c,#0b1522);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+header{height:64px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--line);background:#08121f}
+.logo{font-size:27px;font-weight:850}.logo span{color:var(--blue)}
+.beta{margin-left:10px;font-size:10px;border:1px solid #2d4259;border-radius:99px;padding:4px 8px;color:#aebdd0}
+.note{margin-left:auto;font-size:11px;color:#7f92a8}
+
+.app{display:grid;grid-template-columns:320px minmax(520px,1fr) 330px;height:calc(100vh - 64px)}
+aside,.right{padding:18px;background:var(--panel);overflow:auto}
+aside{border-right:1px solid var(--line)}
+.right{border-left:1px solid var(--line)}
+
+h2{font-size:14px;margin:0 0 14px}
+h3{font-size:11px;color:#8fa2b8;margin:0 0 9px}
+.section{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{font-size:11px;color:#9dafc2;display:block;margin:8px 0 4px}
+input[type=number],select{width:100%;background:#0e2033;color:#fff;border:1px solid #2b4056;border-radius:7px;padding:8px}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.measure{display:grid;grid-template-columns:1fr 68px;gap:8px;align-items:center;margin:8px 0}
+.measure span{font-size:11px;color:#a9b8c9}
+.measure input{padding:5px}
+.presets,.skeletons{display:grid;gap:6px}
+.presets{grid-template-columns:repeat(4,1fr)}
+.skeletons{grid-template-columns:repeat(3,1fr)}
+.preset{padding:9px 3px;border:1px solid var(--line);border-radius:8px;background:#0d1b2b;color:#9fb0c4;font-size:10px}
+.preset.active{border-color:var(--blue);background:#102d4b;color:#fff}
+.checkrow{display:flex;align-items:center;gap:8px;color:#a9b8c9;font-size:11px;margin:8px 0}
+.checkrow input{accent-color:var(--blue)}
+.tip{font-size:10px;color:#7f92a8;line-height:1.6}
+
+.center{padding:14px;background:#101a27;min-width:0}
+.toolbar{height:44px;display:flex;gap:7px;align-items:center}
+.toolbar button{border:1px solid var(--line);background:#0c1927;color:#cbd7e5;border-radius:8px;padding:7px 11px}
+.toolbar button.on{background:#1762a0;border-color:var(--blue);color:#fff}
+.toolbar span{margin-left:auto;color:#8195aa;font-size:11px}
+
+.viewport{
+  height:calc(100vh - 135px);min-height:620px;position:relative;overflow:hidden;
+  border:1px solid #26384c;border-radius:14px;
+  background:radial-gradient(circle at 50% 24%,#4a5663 0,#27313d 36%,#141c25 76%);
+}
+#three{position:absolute;inset:0}
+.badge{position:absolute;top:14px;left:14px;z-index:3;background:#07101ccc;border:1px solid #31465e;border-radius:9px;padding:8px 11px;font-size:11px}
+.modelState{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;background:#07101ccc;border:1px solid #31465e;border-radius:9px;padding:8px 11px;font-size:11px;color:#b7c7d9}
+.rotBtns{position:absolute;top:14px;right:14px;z-index:3}
+.rotBtns button{background:#07101cdd;color:#fff;border:1px solid #41546a;padding:7px 10px}
+.rotBtns button:first-child{border-radius:7px 0 0 7px}.rotBtns button:last-child{border-radius:0 7px 7px 0}
+
+.bottomtools{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:12px;background:#07101cdd;border:1px solid #31465e;border-radius:11px;padding:9px 14px;font-size:11px}
+.bottomtools input{width:150px}
+.bottomtools button{background:#0f2134;color:#dfeafa;border:1px solid #31465e;border-radius:8px;padding:6px 10px}
+
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:10px}
+.score{font-size:31px;font-weight:800}
+.bar{height:6px;background:#203247;border-radius:9px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#35d6a0,#4da3ff)}
+.rowStat{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;margin:9px 0;font-size:11px}
+.rowStat b{font-size:10px;color:#a9b9ca}
+
+@media(max-width:1100px){
+  .app{grid-template-columns:290px minmax(560px,1fr)}
+  .right{display:none}
+}
+@media(max-width:760px){
+  body{min-width:900px}
+  .app{grid-template-columns:290px minmax(560px,1fr)}
+  aside{display:block}
+  .toolbar span{display:none}
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+
+<body>
+<header>
+  <div class="logo">Fit<span>Look</span></div>
+  <div class="beta">β</div>
+  <div class="note">リアル人体3Dモデル版</div>
+</header>
+
+<div class="app">
+
+<aside>
+  <div class="section">
+    <h2>体型設定</h2>
+    <h3>基本情報</h3>
+    <div class="grid2">
+      <div><label>身長 (cm)</label><input id="height" type="number" value="170" min="130" max="210"></div>
+      <div><label>体重 (kg)</label><input id="weight" type="number" value="60" min="30" max="160"></div>
+    </div>
+
+    <label>体型のボリューム</label>
+    <input id="volume" type="range" min="0" max="100" value="42">
+
+    <h3 style="margin-top:16px">詳細寸法 (cm)</h3>
+    <div id="measurements"></div>
+  </div>
+
+  <div class="section">
+    <h3>体型プリセット</h3>
+    <div class="presets">
+      <button class="preset bodyPreset" data-v="24">細身</button>
+      <button class="preset bodyPreset active" data-v="42">標準</button>
+      <button class="preset bodyPreset" data-v="60">がっちり</button>
+      <button class="preset bodyPreset" data-v="76">大きめ</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>骨格タイプ</h3>
+    <div class="skeletons">
+      <button class="preset skeletonBtn" data-skeleton="straight">ストレート</button>
+      <button class="preset skeletonBtn" data-skeleton="wave">ウェーブ</button>
+      <button class="preset skeletonBtn active" data-skeleton="natural">ナチュラル</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>表示</h3>
+    <label class="checkrow"><input id="showMeasure" type="checkbox" checked> 寸法ラインを表示</label>
+    <label class="checkrow"><input id="showOutline" type="checkbox" checked> 体型の輪郭を表示</label>
+  </div>
+
+  <p class="tip">
+    今回の標準人体は MakeHuman → Blender → GLB のモデルを自動読込します。
+    現在のGLBには部位ごとのMorph Targetがないため、詳細寸法はまだ「近似変形」です。
+  </p>
+</aside>
+
+<main class="center">
+  <div class="toolbar">
+    <button id="mode3d" class="on">3D</button>
+    <button id="mode2d">2D</button>
+    <button class="viewBtn on" data-view="front">正面</button>
+    <button class="viewBtn" data-view="side">側面</button>
+    <button class="viewBtn" data-view="back">背面</button>
+    <span>ドラッグ：回転 / ホイール：ズーム</span>
+  </div>
+
+  <div class="viewport">
+    <div id="three"></div>
+    <div class="badge" id="badge">MY MODEL · 170 cm</div>
+    <div class="modelState" id="modelState">fitlook_base.glb 読み込み中…</div>
+    <div class="rotBtns"><button id="left">↶</button><button id="right">↷</button></div>
+
+    <div class="bottomtools">
+      <span>−</span>
+      <input id="zoom" type="range" min="70" max="140" value="100">
+      <span>＋</span>
+      <span id="angleText">0°</span>
+      <button id="reset">リセット</button>
+    </div>
+  </div>
+</main>
+
+<section class="right">
+  <h2>服サイズ（β）</h2>
+  <div class="section">
+    <div class="grid2">
+      <select id="category"><option>トップス</option><option>ボトムス</option></select>
+      <select id="size"><option>S</option><option selected>M</option><option>L</option><option>XL</option></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <b>ベーシックTシャツ</b>
+    <div class="grid2" style="margin-top:9px">
+      <div><label>肩幅</label><input id="gShoulder" type="number" value="50"></div>
+      <div><label>身幅</label><input id="gWidth" type="number" value="52"></div>
+      <div><label>着丈</label><input id="gLength" type="number" value="69"></div>
+      <div><label>袖丈</label><input id="gSleeve" type="number" value="23"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>フィット分析</h2>
+    <div class="card">
+      <span class="score" id="score">84</span><small>/100</small><br>
+      <b id="scoreText">合わせやすいサイズです</b>
+      <div class="bar"><i id="scoreBar" style="width:84%"></i></div>
+    </div>
+    <div class="rowStat"><span>肩幅</span><b id="shoulderFit">標準</b></div>
+    <div class="rowStat"><span>身幅</span><b id="chestFit">標準</b></div>
+    <div class="rowStat"><span>着丈</span><b id="lengthFit">標準</b></div>
+  </div>
+</section>
+
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const E=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const names=["首周り","肩幅","胸囲","ウエスト","ヒップ","腕の長さ","腕の太さ","太もも周り","ふくらはぎ","股下"];
+const defaults=[36,44,88,74,90,53,27,52,34,75];
+names.forEach((n,i)=>E("measurements").insertAdjacentHTML(
+  "beforeend",
+  `<div class="measure"><span>${n}</span><input class="m" data-i="${i}" type="number" value="${defaults[i]}"></div>`
+));
+
+const host=E("three");
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(33,1,.1,100);
+camera.position.set(0,1.45,5.2);
+
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+renderer.shadowMap.enabled=true;
+host.appendChild(renderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.target.set(0,1.45,0);
+controls.minDistance=2.5;
+controls.maxDistance=8;
+controls.enablePan=false;
+
+scene.add(new THREE.HemisphereLight(0xe9f2ff,0x29323d,2.5));
+
+const key=new THREE.DirectionalLight(0xffffff,4);
+key.position.set(3,5,4);
+key.castShadow=true;
+scene.add(key);
+
+const rim=new THREE.DirectionalLight(0x8dbbff,2);
+rim.position.set(-4,3,-3);
+scene.add(rim);
+
+const floor=new THREE.Mesh(
+  new THREE.CircleGeometry(2.5,64),
+  new THREE.MeshStandardMaterial({color:0x29333e,roughness:1,metalness:0})
+);
+floor.rotation.x=-Math.PI/2;
+floor.position.y=.01;
+floor.receiveShadow=true;
+scene.add(floor);
+
+const modelRoot=new THREE.Group();
+scene.add(modelRoot);
+
+let bodyModel=null;
+let baseFitScale=1;
+let skeletonType="natural";
+let currentAngle=0;
+let outlineVisible=true;
+
+const measureGroup=new THREE.Group();
+scene.add(measureGroup);
+const lineMat=new THREE.LineDashedMaterial({color:0x66b8ff,dashSize:.05,gapSize:.035});
+
+function circleLine(y,r){
+  const pts=[];
+  for(let i=0;i<=80;i++){
+    const a=i/80*Math.PI*2;
+    pts.push(new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r));
+  }
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const l=new THREE.Line(g,lineMat);
+  l.computeLineDistances();
+  measureGroup.add(l);
+  return l;
+}
+circleLine(1.90,.52);
+circleLine(1.48,.40);
+circleLine(1.18,.46);
+
+const hGeo=new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(-.86,.04,0),
+  new THREE.Vector3(-.86,2.92,0)
+]);
+const hLine=new THREE.Line(hGeo,lineMat);
+hLine.computeLineDistances();
+measureGroup.add(hLine);
+
+function getBodyValues(){
+  const a=[...document.querySelectorAll(".m")].map(x=>+x.value||0);
+  return {
+    height:+E("height").value||170,
+    weight:+E("weight").value||60,
+    volume:+E("volume").value,
+    neck:a[0],shoulder:a[1],chest:a[2],waist:a[3],hip:a[4],
+    armLen:a[5],arm:a[6],thigh:a[7],calf:a[8],inseam:a[9]
+  };
+}
+
+function skeletonFactors(){
+  if(skeletonType==="straight") return {x:1.025,z:1.025};
+  if(skeletonType==="wave") return {x:.965,z:.975};
+  return {x:1.01,z:1.00};
+}
+
+function applyBodyApproximation(){
+  if(!bodyModel) return;
+
+  const v=getBodyValues();
+  const sk=skeletonFactors();
+
+  const heightScale=clamp(v.height/170,.82,1.20);
+  const volumeScale=.90+v.volume/100*.22;
+  const weightScale=clamp(.92+(v.weight-60)/250,.80,1.22);
+
+  // This GLB currently has no body-part morph targets, so this is a controlled approximation.
+  const shoulderScale=clamp(v.shoulder/44,.82,1.22);
+  const chestScale=clamp(v.chest/88,.84,1.22);
+  const waistScale=clamp(v.waist/74,.82,1.24);
+  const hipScale=clamp(v.hip/90,.84,1.22);
+
+  const widthScale=clamp(
+    (shoulderScale*.30 + chestScale*.28 + waistScale*.18 + hipScale*.24) *
+    volumeScale * weightScale * sk.x,
+    .78,1.32
+  );
+
+  const depthScale=clamp(
+    (chestScale*.32 + waistScale*.28 + hipScale*.40) *
+    (.94 + (weightScale-1)*.8) * sk.z,
+    .82,1.28
+  );
+
+  modelRoot.scale.set(
+    baseFitScale*widthScale,
+    baseFitScale*heightScale,
+    baseFitScale*depthScale
+  );
+
+  E("badge").textContent=`MY MODEL · ${v.height} cm`;
+  updateFit(v);
+}
+
+function updateFit(v){
+  const sizes={
+    S:[46,49,66,21],
+    M:[50,52,69,23],
+    L:[54,56,72,24],
+    XL:[58,60,75,25]
+  };
+  const d=sizes[E("size").value];
+  E("gShoulder").value=d[0];
+  E("gWidth").value=d[1];
+  E("gLength").value=d[2];
+  E("gSleeve").value=d[3];
+
+  const ds=d[0]-v.shoulder;
+  const dc=d[1]*2-v.chest;
+
+  let score=94
+    -Math.abs(ds-6)*1.5
+    -Math.abs(dc-14)*.7
+    -Math.abs(d[2]-v.height*.405)*.45;
+
+  score=clamp(Math.round(score),42,98);
+
+  E("score").textContent=score;
+  E("scoreBar").style.width=score+"%";
+  E("scoreText").textContent=
+    score>=86?"かなり合わせやすそう":
+    score>=70?"合わせやすいサイズです":
+    "別サイズも比較してみよう";
+
+  const txt=(x,target)=>x<target-4?"タイト":x>target+6?"ゆったり":"標準";
+  E("shoulderFit").textContent=txt(ds,6);
+  E("chestFit").textContent=txt(dc,14);
+  E("lengthFit").textContent=
+    Math.abs(d[2]-v.height*.405)<4?"標準":
+    d[2]>v.height*.405?"長め":"短め";
+}
+
+function fitCameraToModel(){
+  const box=new THREE.Box3().setFromObject(modelRoot);
+  const size=box.getSize(new THREE.Vector3());
+  const center=box.getCenter(new THREE.Vector3());
+
+  controls.target.copy(center);
+  const dist=Math.max(3.3,size.y*1.75);
+  camera.position.set(0,center.y,dist);
+  camera.lookAt(center);
+  controls.update();
+}
+
+async function loadDefaultBody(){
+  E("modelState").textContent="fitlook_base.glb 読み込み中…";
+
+  try{
+    const loader=new GLTFLoader();
+    const gltf=await loader.loadAsync('./fitlook_base.glb');
+
+    bodyModel=gltf.scene;
+    modelRoot.add(bodyModel);
+
+    bodyModel.traverse(o=>{
+      if(o.isMesh){
+        o.castShadow=true;
+        o.receiveShadow=true;
+        if(o.material){
+          o.material.side=THREE.FrontSide;
+          o.material.needsUpdate=true;
+        }
+      }
+    });
+
+    // center model and normalize base size
+    const box=new THREE.Box3().setFromObject(bodyModel);
+    const size=box.getSize(new THREE.Vector3());
+    const center=box.getCenter(new THREE.Vector3());
+
+    bodyModel.position.sub(center);
+    bodyModel.position.y += size.y/2;
+
+    baseFitScale = 2.85 / size.y;
+    modelRoot.scale.setScalar(baseFitScale);
+
+    E("modelState").textContent="fitlook_base.glb 読み込み完了";
+    applyBodyApproximation();
+    fitCameraToModel();
+  }catch(err){
+    console.error(err);
+    E("modelState").textContent="fitlook_base.glb を読み込めませんでした";
+  }
+}
+
+function setView(view){
+  document.querySelectorAll(".viewBtn")
+    .forEach(b=>b.classList.toggle("on",b.dataset.view===view));
+
+  currentAngle=view==="front"?0:view==="side"?90:180;
+  setOrbitAngle(currentAngle);
+}
+
+function setOrbitAngle(a){
+  currentAngle=((a%360)+360)%360;
+  const r=THREE.MathUtils.degToRad(currentAngle);
+  const dist=camera.position.distanceTo(controls.target);
+
+  camera.position.set(
+    controls.target.x+Math.sin(r)*dist,
+    camera.position.y,
+    controls.target.z+Math.cos(r)*dist
+  );
+
+  camera.lookAt(controls.target);
+  controls.update();
+  E("angleText").textContent=Math.round(currentAngle)+"°";
+}
+
+document.querySelectorAll(".viewBtn").forEach(
+  b=>b.onclick=()=>setView(b.dataset.view)
+);
+
+E("left").onclick=()=>setOrbitAngle(currentAngle-15);
+E("right").onclick=()=>setOrbitAngle(currentAngle+15);
+
+controls.addEventListener("change",()=>{
+  const dx=camera.position.x-controls.target.x;
+  const dz=camera.position.z-controls.target.z;
+  currentAngle=((THREE.MathUtils.radToDeg(Math.atan2(dx,dz))%360)+360)%360;
+  E("angleText").textContent=Math.round(currentAngle)+"°";
+});
+
+E("zoom").oninput=e=>{
+  const desired=+e.target.value/100;
+  const dir=camera.position.clone().sub(controls.target).normalize();
+  camera.position.copy(controls.target).add(dir.multiplyScalar(5.2/desired));
+  controls.update();
+};
+
+E("mode3d").onclick=()=>{
+  controls.enableRotate=true;
+  E("mode3d").classList.add("on");
+  E("mode2d").classList.remove("on");
+  camera.fov=33;
+  camera.updateProjectionMatrix();
+};
+
+E("mode2d").onclick=()=>{
+  controls.enableRotate=false;
+  E("mode2d").classList.add("on");
+  E("mode3d").classList.remove("on");
+  setView("front");
+  camera.fov=12;
+  camera.updateProjectionMatrix();
+};
+
+E("showMeasure").onchange=()=>{
+  measureGroup.visible=E("showMeasure").checked;
+};
+
+E("showOutline").onchange=()=>{
+  outlineVisible=E("showOutline").checked;
+  if(!bodyModel) return;
+  bodyModel.traverse(o=>{
+    if(o.isMesh && o.material){
+      o.material.wireframe=!outlineVisible;
+      o.material.needsUpdate=true;
+    }
+  });
+};
+
+document.querySelectorAll(".bodyPreset").forEach(b=>b.onclick=()=>{
+  E("volume").value=b.dataset.v;
+  document.querySelectorAll(".bodyPreset")
+    .forEach(x=>x.classList.toggle("active",x===b));
+  applyBodyApproximation();
+});
+
+document.querySelectorAll(".skeletonBtn").forEach(b=>b.onclick=()=>{
+  skeletonType=b.dataset.skeleton;
+  document.querySelectorAll(".skeletonBtn")
+    .forEach(x=>x.classList.toggle("active",x===b));
+  applyBodyApproximation();
+});
+
+document.querySelectorAll("input").forEach(
+  x=>x.addEventListener("input",applyBodyApproximation)
+);
+
+E("size").onchange=applyBodyApproximation;
+
+E("reset").onclick=()=>{
+  E("height").value=170;
+  E("weight").value=60;
+  E("volume").value=42;
+  E("zoom").value=100;
+  [...document.querySelectorAll(".m")].forEach((x,i)=>x.value=defaults[i]);
+
+  skeletonType="natural";
+  document.querySelectorAll(".bodyPreset")
+    .forEach(x=>x.classList.toggle("active",x.dataset.v==="42"));
+  document.querySelectorAll(".skeletonBtn")
+    .forEach(x=>x.classList.toggle("active",x.dataset.skeleton==="natural"));
+
+  applyBodyApproximation();
+  fitCameraToModel();
+  setView("front");
+};
+
+function resize(){
+  const w=host.clientWidth;
+  const h=host.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize",resize);
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+
+resize();
+loadDefaultBody();
+animate();
+</script>
+</body>
+</html>
